@@ -1,13 +1,15 @@
 # Sample Hardhat Project
 
-This project demonstrates a basic Hardhat use case. It comes with a sample contract, a test for that contract, and a Hardhat Ignition module that deploys that contract.
+Deploying contracts with account: 0xbE3171d0e36a012319a5C76bCcD71250499b1C16
+Deploying PiggyBankFactory contract...
+PiggyBank Factory deployed at: 0x2601069c9368aAff8D829efF97c218320C9FDDC5
+Waiting for transactions to confirm...
+Verifying PiggyBank Factory contract...
+Successfully submitted source code for contract
+contracts/PiggyBankFactory.sol:PiggyBankFactory at 0x2601069c9368aAff8D829efF97c218320C9FDDC5
+for verification on the block explorer. Waiting for verification result...
 
-Try running some of the following tasks:
+Successfully verified contract PiggyBankFactory on the block explorer.
+https://sepolia-blockscout.lisk.com/address/0x2601069c9368aAff8D829efF97c218320C9FDDC5#code
 
-```shell
-npx hardhat help
-npx hardhat test
-REPORT_GAS=true npx hardhat test
-npx hardhat node
-npx hardhat ignition deploy ./ignition/modules/Lock.ts
-```
+PiggyBank Factory verified successfully!

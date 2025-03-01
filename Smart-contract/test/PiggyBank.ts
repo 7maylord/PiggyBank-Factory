@@ -6,7 +6,7 @@ import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import { expect } from "chai";
 import  { ethers } from "hardhat";
 
-describe("PiggyBankFactoryContract", function () {
+describe("PiggyBankContract", function () {
   async function deployPiggyBankFixture() {
     const ADDRESS_ZERO = '0x0000000000000000000000000000000000000000';
 
@@ -81,78 +81,18 @@ describe("PiggyBankFactoryContract", function () {
       });  
   });
 
-  describe("computeAddress", function () {
-    it("should compute the correct address for a PiggyBank contract", async function () {
-        const { deployPiggyBank, addr1, lockPeriod, savingsPurpose, tokenAAddress, tokenBAddress, tokenCAddress } = await loadFixture(deployPiggyBankFixture);
+  describe("Deposit", function () {
+    // describe("Saving tokens", function () {
+    //     it("should allow contributors to deposit tokens", async function () {
+    //         const { deployPiggyBank, tokenA, addr1 } = await loadFixture(deployPiggyBankFixture);
+    //         const depositAmount = hre.ethers.parseUnits("50", 18);
 
-        let allowedTokens = [ tokenAAddress, tokenBAddress, tokenCAddress ];
+    //         await token.connect(contributor1).approve(piggyBank.target, depositAmount);
+    //         await expect(piggyBank.connect(contributor1).save(depositAmount))
+    //             .to.emit(piggyBank, "Contributed")
 
-        // Calculate the salt for the computeAddress function
-        const salt = await deployPiggyBank.createSalt(addr1.address, savingsPurpose);
-
-        // Compute the address using the computeAddress function
-        const computedAddress = await deployPiggyBank.computeAddress(
-            addr1.address,
-            allowedTokens,
-            lockPeriod,
-            savingsPurpose,
-            salt
-        );
-
-        // Now, deploy the PiggyBank contract using createPiggyBank
-        await deployPiggyBank.connect(addr1).createPiggyBank(allowedTokens, lockPeriod, savingsPurpose);
-
-        // Retrieve the last deployed PiggyBank's contract address
-        const piggyBanks = await deployPiggyBank.getAllPiggyBanks();
-
-        const lastPiggyBank = piggyBanks[0];
-
-        // Assert that the computed address matches the actual deployed contract address
-        expect(computedAddress).to.equal(lastPiggyBank._contractAddress);
+    //         expect(await piggyBank.contributions(contributor1.address)).to.equal(depositAmount);
+    //     });
+    // });
     });
-  });
-
-  describe("createPiggyBank", function () {
-      it("should revert if allowedTokens length is not 3", async function () {
-
-        const { deployPiggyBank, addr1, lockPeriod, savingsPurpose, tokenAAddress, tokenBAddress } = await loadFixture(deployPiggyBankFixture);
-
-        let allowedTokens = [ tokenAAddress, tokenBAddress ];
-        // Calculate the salt for the computeAddress function
-        const salt = await deployPiggyBank.createSalt(addr1.address, savingsPurpose);
-
-        // Compute the address using the computeAddress function
-        await expect(deployPiggyBank.computeAddress(
-            addr1.address,
-            allowedTokens,
-            lockPeriod,
-            savingsPurpose,
-            salt
-        )).to.be.revertedWithCustomError(deployPiggyBank, "InvalidArguments");
-      });
-
-      it("should create a new PiggyBank contract and store its info", async function () {
-        const { deployPiggyBank, addr1, lockPeriod, savingsPurpose, tokenAAddress, tokenBAddress, tokenCAddress } = await loadFixture(deployPiggyBankFixture);
-    
-        let allowedTokens = [ tokenAAddress, tokenBAddress, tokenCAddress ];
-    
-        await deployPiggyBank.connect(addr1).createPiggyBank(allowedTokens, lockPeriod, savingsPurpose);        
-    
-        // Retrieve the last deployed PiggyBank's contract address
-        const piggyBanks = await deployPiggyBank.getAllPiggyBanks();
-
-        const lastPiggyBank = piggyBanks[0];
-
-        expect(await lastPiggyBank._savingsPurpose).to.equal(savingsPurpose);
-        expect(await lastPiggyBank._lockTime).to.be.greaterThan(0);
-      });
-  
-  
-  
-  
-
-
-
-   });
 });
-

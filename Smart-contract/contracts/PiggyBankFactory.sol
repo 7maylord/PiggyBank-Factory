@@ -15,7 +15,7 @@ contract PiggyBankFactory is Ownable {
     PiggyBankInfo[] private piggyBanks;
     
     // Mapping to track user's PiggyBanks
-    mapping(address => PiggyBankInfo[]) public userPiggyBanks;
+    mapping(address => PiggyBankInfo[]) private userPiggyBanks;
 
     event PiggyBankCreated(address indexed piggyBank, address indexed owner, string savingsPurpose, uint256 lockTime);    
     event PenaltyWithdrawn(address indexed _token, uint256 balance);
@@ -23,7 +23,7 @@ contract PiggyBankFactory is Ownable {
     error InvalidArguments();
     error InsufficientBalance();
     error InvalidNoOfTokens();
-
+    error InvalidAddress();
     constructor() Ownable(msg.sender) {}
 
     //Compute the address of a PiggyBank before deploying it
@@ -87,6 +87,7 @@ contract PiggyBankFactory is Ownable {
 
     //Get all PiggyBanks deployed by a specific user
     function getUserPiggyBanks(address user) external view returns (PiggyBankInfo[] memory) {
+        if(user == address(0)) revert InvalidAddress();
         return userPiggyBanks[user];
     }
 
