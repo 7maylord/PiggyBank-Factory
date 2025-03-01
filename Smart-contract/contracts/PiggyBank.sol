@@ -1,10 +1,12 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.28;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract PiggyBank is Ownable {
+
+    using SafeERC20 for IERC20;
 
     address[] public allowedTokens;
     address public factoryOwner;
@@ -22,7 +24,6 @@ contract PiggyBank is Ownable {
     event EmergencyWithdrawal(address indexed token, address indexed recipient, uint256 amount, uint256 penalty);
     event LockTimeSet(uint256 unlockTime);
 
-    error InvalidConstructorArguments();
     error InvalidAddress();
     error InvalidToken();
     error InsufficientBalance();
@@ -30,13 +31,13 @@ contract PiggyBank is Ownable {
     error TransferFailed(address token, address recipient, uint256 amount);
     
     constructor(address _owner, address _factoryOwner, address[] memory _allowedTokens, uint256 _lockPeriod,string memory _savingsPurpose) Ownable(_owner) {
-        if(_owner == address(0) || _factoryOwner == address(0) || _allowedTokens.length != 3) revert InvalidConstructorArguments();
+        if(_owner == address(0) || _factoryOwner == address(0)) revert InvalidAddress();
         factoryOwner = _factoryOwner;
         savingsPurpose = _savingsPurpose;
         lockTime = block.timestamp + _lockPeriod;
 
         for (uint256 i = 0; i < _allowedTokens.length; i++) {
-            if(_allowedTokens[i] != address(0)) revert InvalidAddress();
+            if(_allowedTokens[i] == address(0)) revert InvalidAddress();
             allowedTokens.push(_allowedTokens[i]);
             isAllowedToken[_allowedTokens[i]] = true;
         }
@@ -45,14 +46,17 @@ contract PiggyBank is Ownable {
     }
 
 
-    function deposit(address token, uint256 amount) external {
-        if(!isAllowedToken[token]) revert InvalidToken();
-        IERC20 erc20 = IERC20(token);
+    function deposit(address _token, uint256 amount) external {
+        if(!isAllowedToken[_token]) revert InvalidToken();
 
-        require(erc20.transferFrom(msg.sender, address(this), amount), "Transfer failed");
+        IERC20 token = IERC20(_token);
 
-        balances[token] += amount;
-        emit Deposit(token, msg.sender, amount);
+        if(token.allowance(msg.sender, address(this)) < amount) revert InsufficientBalance();
+
+        token.safeTransferFrom(msg.sender, address(this), amount);
+
+        balances[_token] += amount;
+        emit Deposit(_token, msg.sender, amount);
     }
 
     function withdraw(address token, uint256 amount) external onlyOwner {
@@ -63,17 +67,18 @@ contract PiggyBank is Ownable {
         balances[token] -= amount;
 
         // Ensure successful withdrawal transfer
-        if (!IERC20(token).transfer(msg.sender, amount)) revert TransferFailed(token, msg.sender, amount);
+        IERC20(token).safeTransfer(msg.sender, amount);
         //require(IERC20(token).transfer(msg.sender, amount), "Withdrawal failed");
 
         emit Withdrawal(token, msg.sender, amount);
     }
 
-    function emergencyWithdraw(address token, uint256 amount) external onlyOwner() {
+    function emergencyWithdraw(address token, uint256 amount) external onlyOwner {
         if(!isAllowedToken[token]) revert InvalidToken();
         if(balances[token] < amount) revert InsufficientBalance();
 
-        uint256 penalty = (amount * PENALTY_PERCENTAGE) / 100;
+        //calculation error? solidity is not good at math
+        uint256 penalty = (amount * PENALTY_PERCENTAGE + 99) / 100;
         uint256 withdrawAmount = amount - penalty;
 
         balances[token] -= amount;

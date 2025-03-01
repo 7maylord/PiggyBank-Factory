@@ -3,25 +3,26 @@ pragma solidity ^0.8.28;
 
 import "./PiggyBank.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract PiggyBankFactory is Ownable {
     struct PiggyBankInfo {
         address _contractAddress;
-        string _savingsPurpose;
         uint256 _lockTime;
+        string _savingsPurpose;
     }
 
-    PiggyBankInfo[] public piggyBanks;
+    PiggyBankInfo[] private piggyBanks;
     
     // Mapping to track user's PiggyBanks
-    mapping(address => PiggyBankInfo[]) private userPiggyBanks;
+    mapping(address => PiggyBankInfo[]) public userPiggyBanks;
 
     event PiggyBankCreated(address indexed piggyBank, address indexed owner, string savingsPurpose, uint256 lockTime);    
     event PenaltyWithdrawn(address indexed _token, uint256 balance);
 
-    error EmptyBytecode();
     error InvalidArguments();
     error InsufficientBalance();
+    error InvalidNoOfTokens();
 
     constructor() Ownable(msg.sender) {}
 
@@ -32,27 +33,35 @@ contract PiggyBankFactory is Ownable {
 
         if(_owner == address(0) || _allowedTokens.length != 3) revert InvalidArguments();
 
-        bytes32 bytecodeHash = keccak256( abi.encodePacked( type(PiggyBank).creationCode, abi.encode(_owner, owner(), _allowedTokens, lockPeriod, savingsPurpose)));
+        bytes32 bytecodeHash = keccak256( abi.encodePacked( type(PiggyBank).creationCode, abi.encode(_owner, address(this), _allowedTokens, lockPeriod, savingsPurpose)));
 
-        if(bytecodeHash == 0) revert EmptyBytecode();
 
         return address(uint160(uint256(keccak256(abi.encodePacked( bytes1(0xff), address(this), salt, bytecodeHash )))));
     }
 
+    //Create salt Sample
+    function createSalt(address _owner, string memory savingsPurpose) public pure returns (bytes32) {
+
+        bytes32 salt = keccak256(abi.encodePacked(_owner, savingsPurpose));
+
+        return salt;
+    }
+
+
     function createPiggyBank( address[] memory allowedTokens, uint256 lockPeriod, string memory savingsPurpose) external {
 
-        require(allowedTokens.length == 3, "Must specify exactly 3 tokens");
+        if(allowedTokens.length != 3) revert InvalidNoOfTokens();
 
-        bytes32 salt = keccak256(abi.encodePacked(msg.sender, savingsPurpose, block.timestamp));
+        bytes32 salt = keccak256(abi.encodePacked(msg.sender, savingsPurpose));
 
         PiggyBank newPiggyBank = new PiggyBank{ salt: salt }(msg.sender, address(this), allowedTokens, lockPeriod, savingsPurpose);
 
         uint256 lockTime = block.timestamp + lockPeriod;
 
         PiggyBankInfo memory _newInfo = PiggyBankInfo({
-            _contractAddress: address(newPiggyBank),
-            _savingsPurpose: savingsPurpose,
-            _lockTime: lockTime
+            _contractAddress: address(newPiggyBank),            
+            _lockTime: lockTime,
+            _savingsPurpose: savingsPurpose
         });
 
 
