@@ -16,10 +16,12 @@ contract PiggyBankFactory is Ownable {
     // Mapping to track user's PiggyBanks
     mapping(address => PiggyBankInfo[]) private userPiggyBanks;
 
-    event PiggyBankCreated(address indexed piggyBank, address indexed owner, string savingsPurpose, uint256 lockTime);
+    event PiggyBankCreated(address indexed piggyBank, address indexed owner, string savingsPurpose, uint256 lockTime);    
+    event PenaltyWithdrawn(address indexed _token, uint256 balance);
 
     error EmptyBytecode();
     error InvalidArguments();
+    error InsufficientBalance();
 
     constructor() Ownable(msg.sender) {}
 
@@ -43,7 +45,7 @@ contract PiggyBankFactory is Ownable {
 
         bytes32 salt = keccak256(abi.encodePacked(msg.sender, savingsPurpose, block.timestamp));
 
-        PiggyBank newPiggyBank = new PiggyBank{ salt: salt }(msg.sender, owner(), allowedTokens, lockPeriod, savingsPurpose);
+        PiggyBank newPiggyBank = new PiggyBank{ salt: salt }(msg.sender, address(this), allowedTokens, lockPeriod, savingsPurpose);
 
         uint256 lockTime = block.timestamp + lockPeriod;
 
@@ -62,8 +64,16 @@ contract PiggyBankFactory is Ownable {
 
 
     //Factory owner can withdraw collected penalties
-    function withdrawPenalties() external onlyOwner {
-        payable(owner()).transfer(address(this).balance);
+    function withdrawPenalties(address _token) external onlyOwner {
+
+        IERC20 token = IERC20(_token);
+        uint256 balance = token.balanceOf(address(this));
+
+        if(balance == 0) revert InsufficientBalance();
+
+        token.transfer(owner(), balance);
+
+        emit PenaltyWithdrawn(_token, balance);
     }
 
     //Get all PiggyBanks deployed by a specific user

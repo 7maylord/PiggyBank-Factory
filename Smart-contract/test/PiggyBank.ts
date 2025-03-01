@@ -2,45 +2,65 @@ import {
   time,
   loadFixture,
 } from "@nomicfoundation/hardhat-toolbox/network-helpers";
+import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import { anyValue } from "@nomicfoundation/hardhat-chai-matchers/withArgs";
 import { expect } from "chai";
 import  { ethers } from "hardhat";
 
-async function deployTokenFixture() {
+async function deployPiggyBankFixture() {
+    const ADDRESS_ZERO = '0x0000000000000000000000000000000000000000';
+
     const [owner, addr1, addr2] = await ethers.getSigners();
 
     const TokenA = await ethers.getContractFactory("ERCToken");
-    const tokenA = await TokenA.deploy("MyTokenA", "MTA", 18, 10000);
+    const tokenA = await TokenA.deploy("MyTokenA", "MTA", 100000);
     await tokenA.waitForDeployment();
 
     const TokenB = await ethers.getContractFactory("ERCToken");
-    const tokenB = await TokenB.deploy("MyTokenB", "MTB", 18, 10000);
+    const tokenB = await TokenB.deploy("MyTokenB", "MTB", 100000);
     await tokenB.waitForDeployment();
 
     const TokenC = await ethers.getContractFactory("ERCToken");
-    const tokenC = await TokenC.deploy("MyTokenC", "MTC", 18, 10000);
+    const tokenC = await TokenC.deploy("MyTokenC", "MTC", 100000);
     await tokenC.waitForDeployment();
 
+    const piggyBankFactory = await ethers.getContractFactory("PiggyBankFactory");
+
+    const deployPiggyBank = await piggyBankFactory.deploy();
+    await deployPiggyBank.waitForDeployment();
 
 
-    return { tokenA, tokenB, tokenC, owner, addr1, addr2 };
+    return { deployPiggyBank, tokenA, tokenB, tokenC, owner, addr1, addr2, ADDRESS_ZERO };
 }
 
-describe("ERC20 Token", function () {
-    it("Should deploy and assign the total supply to the owner", async function () {
-        const { tokenA, tokenB, tokenC, owner } = await loadFixture(deployTokenFixture);
-        const ownerBalanceA = await tokenA.balanceOf(owner.address);
-        expect(ownerBalanceA).to.equal(ethers.parseUnits("1000000", 18));
-        const ownerBalanceB = await tokenB.balanceOf(owner.address);
-        expect(ownerBalanceB).to.equal(ethers.parseUnits("1000000", 18));
-        const ownerBalanceC = await tokenC.balanceOf(owner.address);
-        expect(ownerBalanceC).to.equal(ethers.parseUnits("1000000", 18));
+  describe("Deployment", function () {
+      it("Should deploy token A, B, C and assign the total supply to the owner", async function () {
+          const { tokenA, tokenB, tokenC, owner } = await loadFixture(deployPiggyBankFixture);
+          const ownerBalanceA = await tokenA.balanceOf(owner.address);
+          expect(ownerBalanceA).to.equal(ethers.parseUnits("100000", 18));
+          const ownerBalanceB = await tokenB.balanceOf(owner.address);
+          expect(ownerBalanceB).to.equal(ethers.parseUnits("100000", 18));
+          const ownerBalanceC = await tokenC.balanceOf(owner.address);
+          expect(ownerBalanceC).to.equal(ethers.parseUnits("100000", 18));
+      });
+
+      it('should be deployed by owner', async() => {
+        let { deployPiggyBank, owner } = await loadFixture(deployPiggyBankFixture);
+
+        const runner = deployPiggyBank.runner as HardhatEthersSigner;
+
+        expect(runner.address).to.equal(owner.address);
     });
+    
+    it('should not be address zero', async() => {
+      let { deployPiggyBank, ADDRESS_ZERO } = await loadFixture(deployPiggyBankFixture);
+
+      expect(deployPiggyBank.target).to.not.be.equal(ADDRESS_ZERO);
+  }); 
 
 
 
-
-  });
+});
 // describe("Lock", function () {
 //   // We define a fixture to reuse the same setup in every test.
 //   // We use loadFixture to run this setup once, snapshot that state,
