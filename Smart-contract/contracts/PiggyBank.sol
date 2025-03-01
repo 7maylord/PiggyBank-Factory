@@ -23,6 +23,7 @@ contract PiggyBank is Ownable {
     event LockTimeSet(uint256 unlockTime);
 
     error InvalidConstructorArguments();
+    error InvalidAddress();
     error InvalidToken();
     error InsufficientBalance();
     error NotYetUnlockTime();
@@ -35,7 +36,7 @@ contract PiggyBank is Ownable {
         lockTime = block.timestamp + _lockPeriod;
 
         for (uint256 i = 0; i < _allowedTokens.length; i++) {
-            require(_allowedTokens[i] != address(0), "Invalid token address");
+            if(_allowedTokens[i] != address(0)) revert InvalidAddress();
             allowedTokens.push(_allowedTokens[i]);
             isAllowedToken[_allowedTokens[i]] = true;
         }
